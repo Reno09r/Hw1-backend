@@ -1,30 +1,16 @@
 version: '3.8'
 
 services:
-  frontend:
+  app:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=http://localhost:8001
-    depends_on:
-      - backend
-
-  backend:
-    build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     ports:
       - "8001:8001"
     volumes:
-      - ./backend:/app
+      - .:/app
     env_file:
-      - ./backend/.env
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -32,7 +18,7 @@ services:
   db:
     image: postgres:15
     env_file:
-      - ./backend/.env
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -44,4 +30,4 @@ services:
       retries: 5
 
 volumes:
-  postgres_data: 
+  postgres_data:

@@ -5,7 +5,7 @@
 ### Tasks
 
 - [X] Create a CRUD for your own application
-- [ ] Create and connect a front(IOS/Web) for your own application(take data from backend)
+- [X] Create and connect a front(IOS/Web) for your own application(take data from backend)
 
 ## 🥈 Medium Level
 
