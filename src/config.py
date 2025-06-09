@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
     
     database_url: str
-    
+
     jwt_secret_key: str
+    ALGORITHM:str
 
 
 settings = Settings()

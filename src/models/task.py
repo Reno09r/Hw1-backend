@@ -10,6 +10,6 @@ class Task(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    status = Column(Boolean, default=False)
+    completed = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="tasks")

@@ -12,11 +12,9 @@ class Task(BaseModel):
 
 class TaskCreate(BaseModel):
     title: str
-    deadline: Optional[datetime] = None
     description: str
 
 class TaskUpdate(BaseModel):
     title: str
-    deadline: Optional[datetime] = None
     description: str
     completed: bool

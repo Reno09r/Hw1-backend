@@ -8,7 +8,6 @@ from fastapi.security import OAuth2PasswordBearer
 from src.config import settings
 
 SECRET_KEY = settings.jwt_secret_key
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 720
 
 # Password hashing
@@ -36,5 +35,5 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt

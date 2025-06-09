@@ -10,14 +10,13 @@ from src.database import get_db
 
 router = APIRouter(prefix="/tasks")
 
-@router.post("/", response_model=Task)
-async def create_task(
-    task_data: TaskCreate,
+@router.get("/", response_model=List[Task])
+async def get_user_tasks(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     task_service = TaskService(db)
-    return await task_service.create_task(task_data, current_user.id)
+    return await task_service.get_user_tasks(current_user.id)
 
 @router.get("/{task_id}", response_model=Task)
 async def get_task(
@@ -32,6 +31,17 @@ async def get_task(
     if task.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return task
+
+
+@router.post("/", response_model=Task)
+async def create_task(
+    task_data: TaskCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    task_service = TaskService(db)
+    return await task_service.create_task(task_data, current_user.id)
+
 
 @router.put("/{task_id}", response_model=Task)
 async def update_task(
