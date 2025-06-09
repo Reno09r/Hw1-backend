@@ -16,9 +16,7 @@ class UserRepository:
         now = datetime.utcnow()
         db_user = User(
             username=user_data.username,
-            password_hash=user_data.password,
-            created_at=now,
-            updated_at=now
+            password_hash=user_data.password
         )
         self.db.add(db_user)
         await self.db.commit()
@@ -45,8 +43,6 @@ class UserRepository:
         update_data = user_data.model_dump(exclude_unset=True)
         if "password" in update_data:
             update_data["password_hash"] = update_data.pop("password")
-
-        update_data["updated_at"] = datetime.utcnow()
 
         for key, value in update_data.items():
             setattr(user, key, value)

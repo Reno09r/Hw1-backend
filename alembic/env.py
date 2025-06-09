@@ -16,12 +16,13 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
+# Импортируем модели
+from src.database import Base
+from src.models.user import User
+from src.models.task import Task
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# Устанавливаем метаданные для автогенерации миграций
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
