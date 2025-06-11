@@ -18,8 +18,8 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    'notify-users-every-15-seconds': {
+    'notify-users-every-60-seconds': {
         'task': 'tasks.notify_user_about_tasks',
-        'schedule': 15,
+        'schedule': 60,
     },
 }
