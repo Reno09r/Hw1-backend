@@ -1,7 +1,7 @@
-# src/celery_app.py
 from celery import Celery
-from celery.schedules import crontab
 from src.config import settings
+
+import src.celery_signals
 
 celery_app = Celery(
     'tasks',
@@ -9,7 +9,6 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
     include=['src.tasks'] 
 )
-
 celery_app.conf.update(
     task_serializer='json',
     accept_content=['json'],
@@ -19,8 +18,8 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    'notify-users-every-10-seconds': {
+    'notify-users-every-15-seconds': {
         'task': 'tasks.notify_user_about_tasks',
-        'schedule': 15.0,
+        'schedule': 15,
     },
 }

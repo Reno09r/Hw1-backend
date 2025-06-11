@@ -1,62 +1,93 @@
-# src/database.py (модифицированный для возможного использования в Celery)
+# =========================================================================
+# === АСИНХРОННАЯ ЧАСТЬ (ДЛЯ FASTAPI) ==========
+# =========================================================================
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from config import settings
-import asyncio 
+from .config import settings
+import asyncio
 
-_ENGINES = {} 
+engine = None
 
-def get_async_engine():
+def setup_db_engine():
     """
-    Возвращает или создает движок SQLAlchemy AsyncEngine, ассоциированный
-    с текущим event loop'ом. Это важно для Celery с prefork,
-    где каждый воркер-процесс может иметь свой собственный event loop.
+    Инициализирует AsyncEngine. Эта функция будет вызвана один раз
+    при старте каждого процесса-воркера Celery.
     """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError: # No running event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    if loop not in _ENGINES:
-        print(f"Creating new SQLAlchemy AsyncEngine for event loop: {id(loop)}")
-        _ENGINES[loop] = create_async_engine(
+    global engine
+    if engine is None:
+        print("--- Initializing SQLAlchemy AsyncEngine for Celery worker ---")
+        engine = create_async_engine(
             settings.database_url.replace('postgresql://', 'postgresql+asyncpg://'),
-            echo=True, # Отключите echo=True для продакшена в Celery, будет много логов
-            pool_size=settings.DB_POOL_SIZE_CELERY if hasattr(settings, 'DB_POOL_SIZE_CELERY') else 2, # Меньший пул для Celery воркеров
-            max_overflow=settings.DB_MAX_OVERFLOW_CELERY if hasattr(settings, 'DB_MAX_OVERFLOW_CELERY') else 3,
-
+            pool_size=settings.DB_POOL_SIZE_CELERY if hasattr(settings, 'DB_POOL_SIZE_CELERY') else 5,
+            max_overflow=settings.DB_MAX_OVERFLOW_CELERY if hasattr(settings, 'DB_MAX_OVERFLOW_CELERY') else 10,
         )
-    return _ENGINES[loop]
 
-async def dispose_engine_for_loop(loop_to_dispose):
-    """Закрывает движок, ассоциированный с данным event loop'ом."""
-    if loop_to_dispose in _ENGINES:
-        print(f"Disposing SQLAlchemy AsyncEngine for event loop: {id(loop_to_dispose)}")
-        engine_to_dispose = _ENGINES.pop(loop_to_dispose)
-        await engine_to_dispose.dispose()
+async def dispose_db_engine():
+    """
+    Закрывает пул соединений движка. Будет вызвана при остановке
+    каждого процесса-воркера Celery.
+    """
+    global engine
+    if engine:
+        print("--- Disposing SQLAlchemy AsyncEngine for Celery worker ---")
+        await engine.dispose()
+        engine = None
 
 async def get_db_session() -> AsyncSession:
     """
-    Возвращает новую асинхронную сессию SQLAlchemy, используя движок,
-    ассоциированный с текущим event loop'ом.
+    Возвращает новую асинхронную сессию, используя единый движок процесса.
     """
-    current_engine = get_async_engine()
-
-    session = AsyncSession(bind=current_engine, expire_on_commit=False)
+    if engine is None:
+        setup_db_engine()
+        
+    session = AsyncSession(bind=engine, expire_on_commit=False)
     return session
 
 fastapi_engine = create_async_engine(
     settings.database_url.replace('postgresql://', 'postgresql+asyncpg://'),
-    echo=settings.DB_ECHO if hasattr(settings, 'DB_ECHO') else True, # Предположим, echo настраивается
+    echo=settings.DB_ECHO if hasattr(settings, 'DB_ECHO') else True,
     pool_size=settings.DB_POOL_SIZE_FASTAPI if hasattr(settings, 'DB_POOL_SIZE_FASTAPI') else 5,
     max_overflow=settings.DB_MAX_OVERFLOW_FASTAPI if hasattr(settings, 'DB_MAX_OVERFLOW_FASTAPI') else 10
 )
 fastapi_async_sessionmaker = sessionmaker(
     fastapi_engine, class_=AsyncSession, expire_on_commit=False
 )
+
 async def get_db(): # FastAPI dependency
     async with fastapi_async_sessionmaker() as session:
         yield session
 
 Base = declarative_base()
+
+# =========================================================================
+# === СИНХРОННАЯ ЧАСТЬ (ТОЛЬКО ДЛЯ CELERY) ====================
+# =========================================================================
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from contextlib import contextmanager
+
+SYNC_DATABASE_URL = settings.database_url.replace("+asyncpg", "+psycopg2")
+
+sync_engine = create_engine(SYNC_DATABASE_URL)
+
+SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
+
+@contextmanager
+def get_sync_db_session() -> Session:
+    db = SyncSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def setup_celery_db_engine():
+    """Инициализация. Движок уже создан, так что просто выводим сообщение."""
+    print("--- SQLAlchemy SyncEngine is ready for Celery worker ---")
+    pass
+
+def dispose_celery_db_engine():
+    """Закрытие пула соединений синхронного движка."""
+    print("--- Disposing SQLAlchemy SyncEngine for Celery worker ---")
+    if sync_engine:
+        sync_engine.dispose()
