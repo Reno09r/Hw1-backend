@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from src.services.service_dependencies import get_task_service
 from src.auth.dependencies import get_current_active_user
 from src.models.user import User
 from src.services.task_service import TaskService
@@ -13,18 +13,16 @@ router = APIRouter(prefix="/tasks")
 @router.get("/", response_model=List[Task])
 async def get_user_tasks(
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    task_service: TaskService = Depends(get_task_service)
 ):
-    task_service = TaskService(db)
     return await task_service.get_user_tasks(current_user.id)
 
 @router.get("/{task_id}", response_model=Task)
 async def get_task(
     task_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    task_service: TaskService = Depends(get_task_service)
 ):
-    task_service = TaskService(db)
     task = await task_service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -36,9 +34,8 @@ async def get_task(
 async def create_task(
     task_data: TaskCreate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    task_service: TaskService = Depends(get_task_service)
 ):
-    task_service = TaskService(db)
     try:
         return await task_service.create_task(task_data, current_user.id)
     except ValueError as e:
@@ -49,9 +46,8 @@ async def update_task(
     task_id: int,
     task_data: TaskUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    task_service: TaskService = Depends(get_task_service)
 ):
-    task_service = TaskService(db)
     task = await task_service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -66,9 +62,8 @@ async def update_task(
 async def delete_task(
     task_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    task_service: TaskService = Depends(get_task_service)
 ):
-    task_service = TaskService(db)
     task = await task_service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
