@@ -32,7 +32,6 @@ async def get_task(
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return task
 
-
 @router.post("/", response_model=Task)
 async def create_task(
     task_data: TaskCreate,
@@ -40,8 +39,10 @@ async def create_task(
     db: AsyncSession = Depends(get_db)
 ):
     task_service = TaskService(db)
-    return await task_service.create_task(task_data, current_user.id)
-
+    try:
+        return await task_service.create_task(task_data, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{task_id}", response_model=Task)
 async def update_task(
@@ -56,7 +57,10 @@ async def update_task(
         raise HTTPException(status_code=404, detail="Task not found")
     if task.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    return await task_service.update_task(task_id, task_data)
+    try:
+        return await task_service.update_task(task_id, task_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{task_id}")
 async def delete_task(

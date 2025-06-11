@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from src.database import Base
+from datetime import datetime
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -11,5 +12,7 @@ class Task(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text)
     completed = Column(Boolean, default=False)
+    due_date = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="tasks")

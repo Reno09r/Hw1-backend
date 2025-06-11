@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.repository.task_repository import TaskRepository
 from src.dto.task import Task, TaskCreate, TaskUpdate
@@ -8,6 +9,8 @@ class TaskService:
         self.repository = TaskRepository(db)
 
     async def create_task(self, task_data: TaskCreate, user_id: int) -> Task:
+        if task_data.due_date and task_data.due_date < datetime.utcnow():
+            raise ValueError("Due date cannot be in the past")
         return await self.repository.create_task(task_data, user_id)
 
     async def get_task(self, task_id: int) -> Optional[Task]:
@@ -17,6 +20,8 @@ class TaskService:
         return await self.repository.get_user_tasks(user_id)
 
     async def update_task(self, task_id: int, task_data: TaskUpdate) -> Optional[Task]:
+        if task_data.due_date and task_data.due_date < datetime.utcnow():
+            raise ValueError("Due date cannot be in the past")
         return await self.repository.update_task(task_id, task_data)
 
     async def delete_task(self, task_id: int) -> bool:
