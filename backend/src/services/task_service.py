@@ -29,8 +29,6 @@ class TaskService:
 
     # ... (методы create, update, delete остаются с той же логикой инвалидации) ...
     async def create_task(self, task_data: TaskCreate, user_id: int) -> Task:
-        if task_data.due_date and task_data.due_date < datetime.utcnow():
-            raise ValueError("Due date cannot be in the past")
         new_task = await self.repository.create_task(task_data, user_id)
         await self._clear_user_tasks_cache(user_id)
         return new_task
@@ -61,8 +59,6 @@ class TaskService:
         return pydantic_tasks
 
     async def update_task(self, task_id: int, task_data: TaskUpdate) -> Optional[Task]:
-        if task_data.due_date and task_data.due_date < datetime.utcnow():
-            raise ValueError("Due date cannot be in the past")
         task_to_update = await self.repository.get_task(task_id)
         if not task_to_update:
             return None

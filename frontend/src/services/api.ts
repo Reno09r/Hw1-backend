@@ -106,11 +106,10 @@ class ApiService {
       title: string;
       description: string;
       completed: boolean;
-      deadline?: string;
     }>>(response);
   }
 
-  async createTask(taskData: { title: string; description: string; deadline?: string }) {
+  async createTask(taskData: { title: string; description: string;}) {
     const response = await fetch(`${API_BASE_URL}/tasks/`, {
       method: 'POST',
       headers: {
@@ -125,7 +124,7 @@ class ApiService {
       title: string;
       description: string;
       completed: boolean;
-      deadline?: string;
+
     }>(response);
   }
 
@@ -133,7 +132,6 @@ class ApiService {
     title: string;
     description: string;
     completed: boolean;
-    deadline?: string;
   }) {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       method: 'PUT',
@@ -149,7 +147,7 @@ class ApiService {
       title: string;
       description: string;
       completed: boolean;
-      deadline?: string;
+
     }>(response);
   }
 

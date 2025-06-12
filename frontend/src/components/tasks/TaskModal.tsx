@@ -12,7 +12,6 @@ interface TaskModalProps {
 export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,12 +22,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task }) =
     if (task) {
       setTitle(task.title);
       setDescription(task.description);
-      setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
       setCompleted(task.completed);
     } else {
       setTitle('');
       setDescription('');
-      setDeadline('');
       setCompleted(false);
     }
     setError('');
@@ -45,7 +42,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task }) =
       const taskData = {
         title: title.trim(),
         description: description.trim(),
-        deadline: deadline ? new Date(deadline).toISOString() : undefined,
       };
 
       if (task) {
@@ -112,21 +108,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task }) =
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 placeholder="Enter task description"
                 required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deadline (optional)
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </div>

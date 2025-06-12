@@ -13,8 +13,7 @@ class TaskRepository:
             title=task_data.title,
             description=task_data.description,
             completed=False,
-            user_id=user_id,
-            due_date=task_data.due_date
+            user_id=user_id
         )
         self.db.add(db_task)
         await self.db.commit()

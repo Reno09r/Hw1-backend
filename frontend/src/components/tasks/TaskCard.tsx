@@ -39,14 +39,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit }) => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border-2 transition-all duration-200 hover:shadow-md ${
@@ -101,19 +93,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit }) => {
             </button>
           </div>
         </div>
-
-        {task.deadline && (
-          <div className={`flex items-center space-x-2 text-sm ${
-            task.completed 
-              ? 'text-gray-400' 
-              : 'text-gray-500'
-          }`}>
-            <Calendar className="w-4 h-4" />
-            <span>
-              Due: {formatDate(task.deadline)}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ class Task(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text)
     completed = Column(Boolean, default=False)
-    due_date = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="tasks")
