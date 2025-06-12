@@ -49,7 +49,7 @@ Founded in 2020, over 500 successful implementations, offices in 15 countries.
 """
 
 def calculate(expression: str) -> str:
-    """Performs mathematical calculations."""
+    # ... (код без изменений)
     try:
         allowed_chars = "0123456789+-*/(). "
         if not all(char in allowed_chars for char in expression):
@@ -63,24 +63,24 @@ def calculate(expression: str) -> str:
     except Exception as e:
         return f"Calculation error for '{expression}': {e}"
 
-
 class ExpertResponse(BaseModel):
     information: str
 
 simple_expert_llm_agent = PydanticAIAgent(
     model='openai:gpt-4o-mini', 
     result_type=ExpertResponse, 
-    system_prompt=f"""You are a helpful AI expert at AI Solutions Corp.
-You have deep knowledge about our products (Document Analyzer, Vision AI) and services, based SOLELY on the following information:
+    system_prompt=f"""You are an AI expert for 'AI Solutions Corp'. You will receive a CHRONOLOGICAL conversation transcript between a sales manager and a customer.
+Your role is to provide CONCISE, FACTUAL information to the sales manager to help them answer the LATEST customer message in the transcript.
+
+COMPANY_DATA (Your sole source of product truth):
 {COMPANY_DATA}
 
-When a sales manager asks for information to help them in a chat with a customer, provide clear, concise, and factual information derived ONLY from the provided COMPANY_DATA.
-Focus on product details, capabilities, and how they solve problems as described in COMPANY_DATA.
-Your response will be used by the manager in their chat, so make it easy for them to extract key points.
-Do not invent or infer information beyond what is given in COMPANY_DATA.
-If the query cannot be answered using COMPANY_DATA, state that the information is not available in the provided data.
-Do not write a full reply for the customer. Just provide the necessary information or data.
-If asked to perform calculations, use the 'calculate' tool.
+Instructions:
+1.  Analyze the LATEST customer message within the context of the entire transcript.
+2.  If the LATEST customer message explicitly asks for product details (e.g., "Tell me more about Vision AI", "What are Document Analyzer's features?") or implies a need for clarification on specific product features, provide relevant information extracted ONLY from COMPANY_DATA. Focus on the product(s) mentioned or implied by the LATEST query.
+3.  If the LATEST customer message is about scheduling, a simple confirmation (e.g., "Yes, please"), a greeting, or anything not requiring detailed product data, your response to the manager should be something like: "The user's latest message is [briefly describe, e.g., 'confirming demo interest for Vision AI', 'asking to schedule for Aug 15th', 'a simple greeting']. No specific product details from COMPANY_DATA seem necessary for the manager's next turn. The manager should proceed with [e.g., 'confirming demo time', 'acknowledging the scheduling request', 'a greeting']."
+4.  Your output is for the SALES MANAGER, not the end customer. It should be brief and direct.
+5.  If calculations are needed and requested in relation to the latest query, use the 'calculate' tool.
 """,
     tools=[calculate] 
 )
@@ -100,19 +100,19 @@ class CompanyExpertExecutor(AgentExecutor):
             await task_updater.submit()
             await task_updater.start_work()
             
-            manager_query = context.message.parts[0].root.text
-            print(f"Expert Agent: Received query from manager: {manager_query[:100]}...")
+            conversation_transcript_from_manager = context.message.parts[0].root.text
+            print(f"Expert Agent: Received conversation transcript from manager (last 250 chars): ...{conversation_transcript_from_manager[-250:]}")
             
             final_text_response = ""
             try:
                 print("Expert Agent: Requesting response from Pydantic AI Agent...")
-                llm_response = await simple_expert_llm_agent.run(manager_query)
+                llm_response = await simple_expert_llm_agent.run(conversation_transcript_from_manager)
                 final_text_response = llm_response.output.information
                 print(f"Expert Agent: Pydantic AI Agent responded: {final_text_response[:100]}...")
 
             except Exception as agent_error:
                 print(f"Expert Agent: Error from Pydantic AI Agent: {agent_error}")
-                final_text_response = f"An error occurred while processing your request '{manager_query[:50]}...'. Basic product info: Document Analyzer processes documents, Vision AI is for warehouse monitoring. More details in COMPANY_DATA."
+                final_text_response = f"An error occurred while processing the request with context. Basic product info: Document Analyzer, Vision AI. Details in COMPANY_DATA."
                 print(f"Expert Agent: Using fallback response: {final_text_response[:100]}...")
 
             print(f"Expert Agent: Sending final response to manager: {final_text_response[:200]}...")
@@ -123,6 +123,7 @@ class CompanyExpertExecutor(AgentExecutor):
                 ),
             )
             
+        # ... (обработка ошибок остается без изменений) ...
         except Exception as e:
             print(f"Expert Agent: Error in CompanyExpertExecutor: {e}")
             import traceback
@@ -131,7 +132,7 @@ class CompanyExpertExecutor(AgentExecutor):
                 if event_queue.is_closed():
                     event_queue = EventQueue()
                 task_updater = TaskUpdater(event_queue, context.task_id, context.context_id)
-                task_updater.update_status(
+                await task_updater.update_status( 
                     TaskState.failed,
                     message=task_updater.new_agent_message(
                         parts=[TextPart(text=f"Error processing request for expert: {str(e)}")]
@@ -140,11 +141,12 @@ class CompanyExpertExecutor(AgentExecutor):
             except Exception as update_error:
                 print(f"Expert Agent: Critical error when updating task status to failed: {update_error}")
         
+    # ... (метод cancel и main без изменений) ...
     async def cancel(self, context: RequestContext, event_queue: EventQueue):
         print(f"Expert Agent: Received cancellation request for task {context.task_id}")
         try:
             task_updater = TaskUpdater(event_queue, context.task_id, context.context_id)
-            task_updater.update_status(TaskState.canceled)
+            await task_updater.update_status(TaskState.canceled) 
             print(f"Expert Agent: Task {context.task_id} cancelled.")
         except Exception as e:
             print(f"Expert Agent: Error cancelling task {context.task_id}: {e}")
@@ -154,7 +156,6 @@ class CompanyExpertExecutor(AgentExecutor):
 @click.option('--port', default=10007, help='Port for Uvicorn server')
 def main(host: str, port: int):
     agent_executor = CompanyExpertExecutor()
-
     public_agent_url = os.getenv("PUBLIC_AGENT_URL")
     if not public_agent_url:
         if host == '0.0.0.0':
@@ -163,45 +164,40 @@ def main(host: str, port: int):
             public_agent_url = f'http://expert-agent:{port}/' 
         else:
             public_agent_url = f'http://{host}:{port}/'
-    
     print(f"Public URL for AgentCard (Expert Agent): {public_agent_url}")
-
     agent_card = AgentCard(
-        name='Company Information Expert Agent (Simplified)', 
-        description='Expert on AI Solutions Corp products and services (based on COMPANY_DATA). Can perform calculations.',
+        name='Company Information Expert Agent (Context-Aware)', 
+        description='Expert on AI Solutions Corp products and services (based on COMPANY_DATA). Can perform calculations. Understands conversation context.',
         url=public_agent_url,
-        version='1.1.0', 
+        version='1.2.1', # Increment version
         defaultInputModes=['text'],
         defaultOutputModes=['text'],
         capabilities=AgentCapabilities(streaming=False),
         authentication={"schemes": ["basic"]},
         skills=[
             AgentSkill(
-                id='company_data_expertise', 
-                name='Company Data Expertise',
-                description='Expert knowledge about AI Solutions Corp products and services based on provided data (COMPANY_DATA).',
-                tags=['company', 'products', 'expertise', 'static-data'],
+                id='company_contextual_data_expertise', 
+                name='Company Contextual Data Expertise',
+                description='Expert knowledge about AI Solutions Corp products and services based on provided data (COMPANY_DATA), considering conversation context.',
+                tags=['company', 'products', 'expertise', 'static-data', 'context-aware'],
             ),
             AgentSkill(
-                id='calculations',
-                name='Calculations',
-                description='Performing mathematical calculations.',
-                tags=['math', 'calculations'],
+                id='contextual_calculations', 
+                name='Contextual Calculations',
+                description='Performing mathematical calculations, considering conversation context if relevant.',
+                tags=['math', 'calculations', 'context-aware'],
             )
         ],
     )
-    
     request_handler = DefaultRequestHandler(
         agent_executor=agent_executor,
         task_store=InMemoryTaskStore()
     )
-    
     a2a_app = A2AStarletteApplication(
         agent_card=agent_card,
         http_handler=request_handler
     )
-    
-    print(f"Starting Company Expert Agent (Simplified) on {host}:{port}")
+    print(f"Starting Company Expert Agent (Context-Aware) on {host}:{port}")
     uvicorn.run(a2a_app.build(), host=host, port=port, log_level="info")
 
 if __name__ == "__main__":

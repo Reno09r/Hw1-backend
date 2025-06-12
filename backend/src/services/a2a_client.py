@@ -1,6 +1,7 @@
 import asyncio
 import httpx
 import uuid
+from typing import List, Optional
 from a2a.client import A2AClient, A2AClientError 
 from a2a.types import (
     SendMessageRequest, MessageSendParams, GetTaskRequest, 
@@ -23,34 +24,31 @@ class A2AClientService:
         await self.httpx_client.aclose()
         print("httpx.AsyncClient closed.")
 
-    async def send_message_to_manager(self, user_message: str) -> str:
-        """Sends a message to the manager agent and waits for a response."""
+    async def send_message_to_manager(self, conversation_text: str) -> str: # Изменен параметр
+        """Sends the full conversation text to the manager agent and waits for a response."""
         try:
             print(f"send_message_to_manager: Attempting to connect to Manager Agent at: {MANAGER_AGENT_URL}")
             a2a_sdk_client = await A2AClient.get_client_from_agent_card_url(
                 self.httpx_client, MANAGER_AGENT_URL
             )
-            # Используем .url вместо .agent_url, так как agent_url может не быть у базового клиента
             print(f"send_message_to_manager: Successfully got A2A SDK client for manager. Agent URL: {a2a_sdk_client.url}")
-
 
             request_id = f"send-req-chat-{uuid.uuid4()}"
             send_request_params = MessageSendParams(
                 message={
                     'messageId': f"msg-chat-{uuid.uuid4()}",
-                    'role': 'user',
-                    'parts': [{'type': 'text', 'text': user_message}],
+                    'role': 'user', 
+                    'parts': [{'type': 'text', 'text': conversation_text}], # Передаем весь текст диалога
                 }
             )
             send_request_obj = SendMessageRequest(id=request_id, params=send_request_params)
             
-            print(f"send_message_to_manager: Preparing to send message to manager. Request ID: {request_id}, Message: {user_message[:100]}...")
-            # print(f"send_message_to_manager: A2A SDK Client instance: {a2a_sdk_client}")
-            # print(f"send_message_to_manager: Request object: {send_request_obj.model_dump_json(indent=2)}")
-
+            print(f"send_message_to_manager: Preparing to send conversation to manager. Request ID: {request_id}, Conversation (first 150 chars): {conversation_text[:150]}...")
+            
             response_from_send_message = await a2a_sdk_client.send_message(send_request_obj)
             print("send_message_to_manager: a2a_sdk_client.send_message call completed.")
             
+            # ... остальная часть метода без изменений ...
             if not hasattr(response_from_send_message.root, "result"):
                 error_msg = f"Error: Failed to create task for manager agent. Response: {response_from_send_message.root}"
                 print(f"send_message_to_manager: {error_msg}")
@@ -62,9 +60,9 @@ class A2AClientService:
             max_attempts = 120
             for attempt in range(max_attempts):
                 await asyncio.sleep(0.5)
-                get_task_request_id = f"get-task-req-{uuid.uuid4()}" # <--- ID для GetTaskRequest
+                get_task_request_id = f"get-task-req-{uuid.uuid4()}" 
                 get_task_resp = await a2a_sdk_client.get_task(
-                    GetTaskRequest(id=get_task_request_id, params=TaskQueryParams(id=manager_task.id)) # <--- Добавлен id
+                    GetTaskRequest(id=get_task_request_id, params=TaskQueryParams(id=manager_task.id)) 
                 )
                 if isinstance(get_task_resp.root, GetTaskSuccessResponse):
                     manager_task = get_task_resp.root.result
@@ -88,6 +86,7 @@ class A2AClientService:
                 print(f"send_message_to_manager: {msg}")
                 return msg
 
+        # ... (обработка ошибок остается без изменений) ...
         except httpx.ConnectError as e:
             request_url = e.request.url if e.request else "N/A"
             print(f"Critical error (httpx.ConnectError) in A2A client (manager): {e}. URL: {request_url}")
@@ -104,6 +103,7 @@ class A2AClientService:
             import traceback
             traceback.print_exc()
             return f"An internal error occurred while communicating with the manager agent: {str(e)}"
+
 
 a2a_client_service_instance = A2AClientService()
 
