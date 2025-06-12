@@ -18,6 +18,6 @@ class Settings(BaseSettings):
     redis_url:str
     CELERY_BROKER_URL:str
     CELERY_RESULT_BACKEND:str
-
+    MANAGER_AGENT_URL:str
 
 settings = Settings()

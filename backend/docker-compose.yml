@@ -16,6 +16,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      manager-agent:
+        condition: service_started
 
   db:
     image: postgres:15
@@ -57,6 +59,41 @@ services:
     depends_on:
       - redis
       - app
+
+  # --- НОВЫЙ СЕРВИС ДЛЯ ЭКСПЕРТА ---
+  expert-agent:
+    build: .
+    # Запускаем скрипт эксперта. --host 0.0.0.0 ОБЯЗАТЕЛЕН для доступа из других контейнеров.
+    command: python -m src.agents.expert_agent --host 0.0.0.0 --port 10007
+    volumes:
+      - .:/app
+    ports:
+      # Пробрасываем порт на хост для отладки (опционально)
+      - "10007:10007"
+    environment:
+      - PUBLIC_AGENT_URL=http://expert-agent:10007
+    env_file:
+      - .env
+    # У этого сервиса нет зависимостей от других
+
+  # --- НОВЫЙ СЕРВИС ДЛЯ МЕНЕДЖЕРА ---
+  manager-agent:
+    build: .
+    # Запускаем скрипт менеджера
+    command: python -m src.agents.manager_agent --host 0.0.0.0 --port 10008
+    volumes:
+      - .:/app
+    ports:
+      # Пробрасываем порт на хост для отладки (опционально)
+      - "10008:10008"
+    env_file:
+      - .env
+    environment:
+      - PUBLIC_AGENT_URL=http://manager-agent:10008 
+      - EXPERT_AGENT_URL=http://expert-agent:10007 
+    depends_on:
+      # Менеджер зависит от эксперта, так как обращается к нему
+      - expert-agent
 
 volumes:
   postgres_data:

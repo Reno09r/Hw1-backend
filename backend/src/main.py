@@ -13,7 +13,8 @@ from src.config import settings
 from src.routers.task_router import router as tasks_router
 from src.routers.user_router import router as user_router
 from src.auth.auth_router import router as auth_router
-
+from src.routers.chat_router import router as chat_router
+from src.services.a2a_client import a2a_client_service_instance
 # Новый класс для управления WebSocket-соединениями
 class ConnectionManager:
     def __init__(self):
@@ -66,16 +67,18 @@ async def lifespan(app: FastAPI):
     await init_redis_pool()
     print("Redis pool successfully initialized.")
 
-    # Запускаем слушателя Redis в фоновой задаче
     listener_task = asyncio.create_task(redis_listener(manager))
     print("Redis Pub/Sub listener started.")
 
-    yield
+    yield # Приложение работает здесь
 
-    print("Application stops, cancelling listener and closing Redis pool...")
+    print("Application stops, cleaning up...")
     listener_task.cancel()
     await close_redis_pool()
     print("Redis pool successfully closed.")
+    # --- НОВЫЙ КОД ---
+    await a2a_client_service_instance.close()
+    print("A2A HTTPX client closed.")
 
 
 # 3. Подключаем lifespan к нашему приложению FastAPI
@@ -118,3 +121,4 @@ def read_root():
 app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(user_router)
+app.include_router(chat_router)
