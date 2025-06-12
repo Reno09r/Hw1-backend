@@ -35,3 +35,31 @@ async def get_session_history(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found")
     
     return history
+
+# --- ДОБАВЬТЕ ЭТОТ КОД В src/routers/chat_router.py ---
+from fastapi import Request
+
+@router.post("/diagnose")
+async def diagnose_request(request: Request):
+    """
+    Этот эндпоинт просто покажет нам, что сервер получает в сыром виде.
+    """
+    content_type = request.headers.get("content-type")
+    raw_body = await request.body()
+    decoded_body = raw_body.decode()
+
+    json_from_fastapi = None
+    parsing_error = None
+    try:
+        # Попытаемся сделать то, что FastAPI делает под капотом
+        json_from_fastapi = await request.json()
+    except Exception as e:
+        parsing_error = str(e)
+
+    return {
+        "message": "Это диагностический ответ.",
+        "received_content_type": content_type,
+        "raw_body_as_string": decoded_body,
+        "result_of_fastapi_json_parsing": json_from_fastapi,
+        "error_during_parsing": parsing_error
+    }

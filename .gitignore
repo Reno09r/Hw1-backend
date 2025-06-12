@@ -163,6 +163,9 @@ lerna-debug.log*
 frontend/node_modules
 frontend/dist
 frontend/dist-ssr
+frontend_chat/node_modules
+frontend_chat/dist
+frontend_chat/dist-ssr
 *.local
 
 # Editor directories and files
