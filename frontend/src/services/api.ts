@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8001';
+const API_BASE_URL = '/api';
 
 class ApiService {
   private getAuthHeader(): HeadersInit {
@@ -35,7 +35,7 @@ class ApiService {
   }
 
   async register(userData: { username: string; password: string }) {
-    const response = await fetch(`${API_BASE_URL}/users/`, {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

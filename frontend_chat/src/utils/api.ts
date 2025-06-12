@@ -1,6 +1,6 @@
 // --- START OF FILE api.ts (ФИНАЛЬНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ) ---
 
-const API_BASE_URL = 'http://localhost:8001';
+const API_BASE_URL = '/api';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
